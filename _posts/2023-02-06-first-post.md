@@ -4,6 +4,7 @@ title:	"First post"
 date:	2023-02-06 01:39:00 +0300
 categories:	Category
 ---
+{% include_relative _includes/head-custom.html %}
 
 How to install `PETSc` library
 
