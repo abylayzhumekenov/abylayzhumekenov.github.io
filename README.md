@@ -1,6 +1,7 @@
 ---
-layout: post
-title: Blogging Like a Hacker
+title: Home
+author: Abylay Zhumekenov
+date: February 6, 2023
 ---
 
 # abylayzhumekenov.github.io
@@ -8,5 +9,4 @@ title: Blogging Like a Hacker
 - one
 - two
 - three
-
 
