@@ -13,5 +13,16 @@ git clone -b release https://gitlab.com/petsc/petsc.git petsc
 git pull # obtain new release fixes (since a prior clone or pull)
 ```
 
+For more visit their [official website][petsc-website]
+
 Also we could write math like $$ c = \sqrt{a^2+b^2} $$
 
+And some code in C:
+
+{% highlight c %}
+int main(){
+	return 0;
+}
+{% endhighlight %}
+
+[petsc-website]: https://petsc.org/
