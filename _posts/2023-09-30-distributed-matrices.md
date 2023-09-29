@@ -12,14 +12,16 @@ Parallelized sparse and dense matrix algorithms serve as an important basis for 
 In this post, we will implement distributed (parallel) matrices using MPI (Message Passing Interface).
 
 First, there are several ways to split a large matrix. A common way is to assign row blocks to different MPI processes.
-It might look as follows:
+Let $A$ be a $4\times4$ matrix. We will split its rows evenly as follows:
+
 $$
-\begin{bmatrix}
+\begin{array}
 	a_{0,0} & a_{0,1} & a_{0,2} & a_{0,3} \\
 	a_{1,0} & a_{1,1} & a_{1,2} & a_{1,3} \\
+	\hline
 	a_{2,0} & a_{2,1} & a_{2,2} & a_{2,3} \\
 	a_{3,0} & a_{3,1} & a_{3,2} & a_{3,3} \\
-\end{bmatrix}
+\end{array}
 $$
 
 
