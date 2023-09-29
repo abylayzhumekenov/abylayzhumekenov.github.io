@@ -15,13 +15,15 @@ First, there are several ways to split a large matrix. A common way is to assign
 Let $A$ be a $4\times4$ matrix. We will split its rows evenly as follows:
 
 $$
-\begin{array}
+A = \left[
+\begin{array}{cc:cc}
 	a_{0,0} & a_{0,1} & a_{0,2} & a_{0,3} \\
 	a_{1,0} & a_{1,1} & a_{1,2} & a_{1,3} \\
 	\hline
 	a_{2,0} & a_{2,1} & a_{2,2} & a_{2,3} \\
 	a_{3,0} & a_{3,1} & a_{3,2} & a_{3,3} \\
 \end{array}
+\right]
 $$
 
 
