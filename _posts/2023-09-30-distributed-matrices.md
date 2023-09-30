@@ -26,6 +26,32 @@ A = \left[
 \right]
 $$
 
+The rank 0 process gets rows 0 and 1, while the rank 1 process gets to store rows 2 and 3, the horizontal line indicates
+that the rows belong to different processes. Another apporach would be to split according to column indices, in which case
+the dashed line would be the border. We will stick to the first approach. Note that the submatrix on rank 0 is of size $$2\times4$$,
+that is, despite owning only 2 rows, it owns all the columns. This would be beneficial for performing matrix-vector products.
+
+We start by defining a structure that will hold all the necessary data for our parallel matrix.
+
+```
+typedef struct _Matrix {
+    MPI_Comm comm;
+    int rank, size;
+    int n, m, N, M;
+    int *isize, *istart, *iend;
+    double* val;
+} _Matrix;
+```
+
+Here, `comm` is an MPI communicator, we will need it for communication between processes for various matrix operations. The `rank` and
+`size` hold the process rank and overall number of processes. Integers `N` and `M` are global matrix dimensions, 4 and 4 for the matrix $$A$$.
+Whereas `n` and `m` are local matrix sizes, which are 2 and 4 (`m = M` for now). When we run our program, each process will have allocate
+its own memory, and local sizes might differ for each rank. One would often need additional information about other ranks. This info can be
+stored in arrays `isize`, `istart` and `iend`, each of size `size`. These are duplicated on each process, and contain the number of owned rows,
+the starting row index, the ending row index (exclusive), correspondingly. Lastly, we need an array `val` for storing our matrix entries.
+
+
+
 
 ```
 git clone -b release https://gitlab.com/petsc/petsc.git petsc
