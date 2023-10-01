@@ -33,7 +33,7 @@ that is, despite owning only 2 rows, it owns all the columns. This would be bene
 
 We start by defining a structure that will hold all the necessary data for our parallel matrix.
 
-```{C}
+```
 typedef struct _Matrix {
     MPI_Comm comm;
     int rank, size;
