@@ -95,9 +95,12 @@ void MatrixSetValue(Matrix A, int i, int j, double val);
 void MatrixView(Matrix A);
 ```
 
-The implementations will follow in `matrix.c` source file. We start by defining a structure that will hold all the necessary data for our parallel matrix. This structure is internal and is not seen from outside of `matrix.c` file.
+The implementations will follow in `matrix.c` source file. We start a file by defining a structure that will hold all the necessary data for our parallel matrix. This structure is internal and is not seen from outside of `matrix.c` file.
 
 ```c
+#include <openmpi/mpi.h>
+#include "matrix.h"
+
 typedef struct _Matrix {
     MPI_Comm comm;
     int rank, size;
