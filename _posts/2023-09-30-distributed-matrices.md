@@ -33,7 +33,7 @@ that is, despite owning only 2 rows, it owns all the columns. This would be bene
 
 We start by defining a structure that will hold all the necessary data for our parallel matrix.
 
-```
+```c
 typedef struct _Matrix {
     MPI_Comm comm;
     int rank, size;
@@ -49,6 +49,19 @@ Whereas `n` and `m` are local matrix sizes, which are 2 and 4 (`m = M` for now).
 its own memory, and local sizes might differ for each rank. One would often need additional information about other ranks. This info can be
 stored in arrays `isize`, `istart` and `iend`, each of size `size`. These are duplicated on each process, and contain the number of owned rows,
 the starting row index, the ending row index (exclusive), correspondingly. Lastly, we need an array `val` for storing our matrix entries.
+
+```
+.
+├── main
+├── main.c
+├── Makefile
+├── matrix.c
+├── matrix.h
+├── ops.c
+├── ops.h
+├── vector.c
+└── vector.h
+```
 
 
 
