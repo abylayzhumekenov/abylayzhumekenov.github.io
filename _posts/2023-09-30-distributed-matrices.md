@@ -196,3 +196,112 @@ void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A){
     (*A)->val = calloc((*A)->n * M, sizeof(double));
 }
 ```
+
+### MatrixDestroy
+
+The memory allocated dynamically using `malloc` or `calloc` cannot be reclaimed by the operating system, unless we `free` it or the program terminates. If we provide a function for creating matrices, we must provide a function to destroying them too. This will help the user to get better control of his memory consumption. The following code deallocates the contents of a matrix in reverse order: first it frees arrays `val`, `isize`, etc., and only after that the structure itself. If we `free(*A)` first, `(*A)->val` and friends now point to nowhere and we cannot deallocate them. Since the arrays are still unreclaimed, this is a memory leak.
+
+```c
+void MatrixDestroy(Matrix* A){
+    free((*A)->isize);
+    free((*A)->istart);
+    free((*A)->iend);
+    free((*A)->val);
+    free((*A));
+}
+```
+
+### MatrixSetValue
+
+Navigating C arrays to set individual matrix entries might be too tiresome for the user. Especially when the matrix is distributed and its indices do not correspond to those of local arrays. For example, if we want to insert a value in the position `(0,0)` in matrix $$A$$, only the owner (rank 0) must do so. Luckily, we can access the ownership information we saved in `istart` and `iend` arrays. If the index `i` is in the ownership range, we can insert the value on `i - A->istart[A->rank]`th row of the local matrix. For our matrix $$A$$, the offsets are equal to 0 and 2 correspondingly.
+
+```c
+void MatrixSetValue(Matrix A, int i, int j, double val){
+    if(i >= A->istart[A->rank] && i < A->iend[A->rank]){
+        A->val[(i - A->istart[A->rank]) * A->M + j] = val;
+    }
+}
+```
+
+### MatrixView
+
+At last, we implement a function to print our matrix. Input and output in an MPI program is quite tricky. The reason is that all MPI processes run the same code simultaneously, and if we want to naively print array contents, the output would be a mess. A slightly more successful approach is to force processes wait for each other. This can be accomplished with `MPI_Barrier` function.
+
+
+```c
+void MatrixView(Matrix A){
+    if(!A->rank) printf("Matrix of size (%i, %i) on %i processes:\n", A->N, A->M, A->size);
+    for(int k=0; k<A->size; k++){
+        if(A->rank == k){
+            printf("[%i]\n", A->rank);
+            for(int i=0; i<A->n; i++){
+                for(int j=0; j<A->M; j++){
+                    printf("%f\t", A->val[i*A->M+j]);
+                }
+                printf("\n");
+            }
+        }
+        MPI_Barrier(A->comm);
+    }
+}
+```
+
+The code above runs a `k`-loop from 0 to `size` on each process. Inside, we check if the `rank` is equal to current `k`. If yes, we print the local submatrix. If not, we do nothing. The `MPI_Barrier` at the end makes sure that no other process continues until we done printing. As a result, on iteration `k = 0`, rank 0 process prints its own submatrix, all others wait. On iteration `k = 1`, rank 1 prints, all others wait. And so on, until we reach the last process and the end of the matrix.
+
+We must note that the output will not always be in order. In general, it is impossible to synchronize the output of an MPI program, since the output is handled by the operating system. However, it might be possible to write into a file in a correct order, or to send all the data to a single process for printing. For large scale problems, printing millions of entries or sending the entire matrix over the network would be unwise in any case.
+
+### Test
+
+Now, let us test the implemented functions on an example matrix $$A$$ of size $$4\times4$$. Let $$A$$ be an identity matrix:
+
+$$
+A = \left[
+\begin{array}{cccc}
+	1 & 0 & 0 & 0 \\
+	0 & 1 & 0 & 0 \\
+	\hline
+    0 & 0 & 1 & 0 \\
+	0 & 0 & 0 & 1 \\
+\end{array}
+\right]
+$$
+
+We test our code in `main.c` as follows:
+
+```c
+#include <stdio.h>
+#include <openmpi/mpi.h>
+#include "matrix.h"
+
+int main(int argc, char **argv){
+
+    MPI_Init(&argc, &argv);
+    
+    int N = 4;
+    Matrix A;
+    MatrixCreate(MPI_COMM_WORLD, N, N, &A);
+    for(int i=0; i<N; i++) MatrixSetValue(A, i, i, 1.0);
+    MatrixView(A);
+    MatrixDestroy(&A);
+
+    MPI_Finalize();
+
+    return 0;
+}
+```
+
+We compile the code as `mpicc main.c matrix.c -o main` and run it as `mpiexec -n 2 ./main`. The output should be something in the lines of (might be wrong order)
+
+```
+Matrix of size (4, 4) on 2 processes:
+[0]
+1.000000	0.000000	0.000000	0.000000	
+0.000000	1.000000	0.000000	0.000000	
+[1]
+0.000000	0.000000	1.000000	0.000000	
+0.000000	0.000000	0.000000	1.000000
+```
+
+## Conclusion
+
+To sum up, MPI is a powerful tool for writing programs for distributed memory, where each "device" runs its own copy of the executable and has its own memory. By distinguishing processes based on rank, one could implement sophisticated parallel data structures and algorithms. Next time, we will implement parallel vectors and parallelized matrix-vector products.
