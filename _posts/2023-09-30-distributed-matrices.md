@@ -116,7 +116,55 @@ Here, `comm` is an MPI communicator, we will need it for communication between p
 
 ### MatrixCreate
 
-Let's first implement the `MatrixCreate` function. The code of the function is given below. The first thing we need to do is to 
+Let's first implement the `void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A)` function. The full code of the function will be given later. The first thing we need to do is to understand our place in the world. We use `MPI_Comm_rank` and `MPI_Comm_size` functions to get the rank and overall size of the communicator. 
+
+```c
+int rank, size;
+MPI_Comm_rank(comm, &rank);
+MPI_Comm_size(comm, &size);
+```
+
+Next, we allocate the memory for our data using `malloc`, as the argument, we give size of `_Matrix` structure. We also allocate memory for our arrays `isize`, `istart` and `iend` using `calloc`. This initializes arrays to 0, other fields related to the communicator are initalized as well. Note that `A` is a pointer to `Matrix`, which is itself a pointer to `_Matrix`, i.e. `A` is of type `Matrix**`. To access our fields, we do something like `(**A).comm` or `(*A)->comm`.
+
+```c
+(*A) = malloc(sizeof(_Matrix));
+(*A)->comm = comm;
+(*A)->rank = rank;
+(*A)->size = size;
+(*A)->isize  = calloc(size, sizeof(int));
+(*A)->istart = calloc(size, sizeof(int));
+(*A)->iend   = calloc(size, sizeof(int));
+```
+
+Now we have to decide how we split our matrix. The number of local and global columns is equal to `M` in our implementation. So, given global row dimensions `N`, we have to calculate how many will be local `n` rows. Since we are working with integers, each process should get at least `N / size` rows. E.g, for `N = 7` and `size = 3`, each rank gets `7 / 3 = 2` rows at minimum. Further, we must somehow distribute the remaining rows, of which, there are `N % size` or `7 % 3 = 1`. We can make the following rule: if the remainder is `r`, the first `r` ranks will get one additional row. This can nicely be written as `rank < N % size`, which is 1 for the first `r` ranks and 0 for the rest. To get the intuition, you can play this game on a paper using other numbers.
+
+```c
+(*A)->n = N / size + (rank < N % size);
+(*A)->m = M;
+(*A)->N = N;
+(*A)->M = M;
+```
+
+The row split is fully deterministic and does not require any communication. That means we can generate this information on every process, so that everyone knows who owns how many rows, and the ownership ranges.
+
+```c
+(*A)->isize[0] = N / size + (0 < N % size);
+(*A)->iend[0] = (*A)->isize[0];
+for(int k=1; k<size; k++){
+    (*A)->isize[k]   = N / size + (k < N % size);
+    (*A)->istart[k]  = (*A)->istart[k-1]  + (*A)->isize[k-1];
+    (*A)->iend[k]    = (*A)->iend[k-1]    + (*A)->isize[k];
+}
+```
+
+Finally, we know how much memory must be allocated for the local portion of the matrix. On each process, the number of local rows is `n` and the number of columns is `M`. Therefore, we allocate `n * M` doubles to store matrix entries.
+
+
+```c
+(*A)->val = calloc((*A)->n * M, sizeof(double));
+```
+
+The full implementation is:
 
 ```c
 void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A){
