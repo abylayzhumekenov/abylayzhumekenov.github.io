@@ -98,8 +98,10 @@ void MatrixView(Matrix A);
 The implementations will follow in `matrix.c` source file. We start a file by defining a structure that will hold all the necessary data for our parallel matrix. This structure is internal and is not seen from outside of `matrix.c` file.
 
 ```c
-#include <openmpi/mpi.h>
 #include "matrix.h"
+#include <openmpi/mpi.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 typedef struct _Matrix {
     MPI_Comm comm;
@@ -112,3 +114,37 @@ typedef struct _Matrix {
 
 Here, `comm` is an MPI communicator, we will need it for communication between processes for various matrix operations. The `rank` and `size` hold the process rank and overall number of processes. Integers `N` and `M` are global matrix dimensions, 4 and 4 for the matrix $$A$$. Whereas `n` and `m` are local matrix sizes, which are 2 and 4 (`m = M` in this exercise). When we run our program, each process will have allocate its own memory, and local sizes might differ for each rank. One would often need additional information about other ranks. This info can be stored in arrays `isize`, `istart` and `iend`, each of size `size`. These are duplicated on each process, and contain the number of owned rows, the starting row index, the ending row index (exclusive), correspondingly. Lastly, we need an array `val` for storing local matrix entries.
 
+### MatrixCreate
+
+Let's first implement the `MatrixCreate` function. The code of the function is given below. The first thing we need to do is to 
+
+```c
+void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A){
+    int rank, size;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+
+    (*A) = malloc(sizeof(_Matrix));
+    (*A)->comm = comm;
+    (*A)->rank = rank;
+    (*A)->size = size;
+    (*A)->isize  = calloc(size, sizeof(int));
+    (*A)->istart = calloc(size, sizeof(int));
+    (*A)->iend   = calloc(size, sizeof(int));
+
+    (*A)->n = N / size + (rank < N % size);
+    (*A)->m = M;
+    (*A)->N = N;
+    (*A)->M = M;
+
+    (*A)->isize[0] = N / size + (0 < N % size);
+    (*A)->iend[0] = (*A)->isize[0];
+    for(int k=1; k<size; k++){
+        (*A)->isize[k]   = N / size + (k < N % size);
+        (*A)->istart[k]  = (*A)->istart[k-1]  + (*A)->isize[k-1];
+        (*A)->iend[k]    = (*A)->iend[k-1]    + (*A)->isize[k];
+    }
+
+    (*A)->val = calloc((*A)->n * M, sizeof(double));
+}
+```
