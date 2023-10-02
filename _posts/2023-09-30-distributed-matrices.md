@@ -8,7 +8,7 @@ categories:	Category
 
 ## Introduction
 
-Parallelized sparse and dense matrix algorithms serve as an important basis for many scientific computing applications. While OpenMP and other parallel programming interfaces can be used on shared memory devices (e.g. laptop, cluster node), for larger problems, a single machine can seldom provide enough memory or enough CPUs to parallelize over. To write concurrent programs that use several machines, devices or cluster nodes (what supercomputers essentially are), one could use a Message Passing Interface (MPI). The key difference between MPI and OpenMP is that OpenMP threads can access the same memory, where each MPI process lives on a separate machine and cannot directly access others memory. To communicate, we need to send chunks of data back and forth between physical machines. The speed at which this happens is very slow compared to a CPU speed, and thus, one cannot send too much over a network. Understanding this bottleneck is important for writing better MPI programs.
+Parallelized sparse and dense matrix algorithms serve as an important basis for many scientific computing applications. While OpenMP and other parallel programming interfaces can be used on shared memory devices (e.g. laptop, cluster node), for larger problems, a single machine can seldom provide enough memory or enough CPUs to parallelize over. To write concurrent programs that use several machines, devices or cluster nodes (what supercomputers essentially are), one could use a Message Passing Interface (MPI). The key difference between MPI and OpenMP is that OpenMP threads can access the same memory, where each MPI process lives on a separate machine and cannot directly access others' memory. To communicate, we need to send chunks of data back and forth between physical machines. The speed at which this happens is very slow compared to a CPU speed, and thus, one cannot send too much over a network. Understanding this bottleneck is important for writing better MPI programs.
 
 In this post, we will implement distributed (parallel) dense matrices in C using MPI. The C language has simple syntax and is explicit about memory, therefore it is our choice. We note that although MPI is mainly used for applications run on supercomputers, we can write and test them on shared memory devices too. That is, we can use it to run parallel programs on our laptops. Sometimes applications choose to use MPI instead of OpenMP for their shared memory implementations. For the exercise, we can use both MPICH or Open MPI (do not confuse with OpenMP) implementations of the MPI. If you do not have, you can always `sudo apt install` them. This will let you use MPI compilers `mpicc` instead of usual `gcc` to compile C source codes into a parallel program, e.g.: `mpicc main.c -o main`. Then we can run it by specifying the number of processes as `mpiexec -n 2 ./main`.
 
@@ -112,11 +112,11 @@ typedef struct _Matrix {
 } _Matrix;
 ```
 
-Here, `comm` is an MPI communicator, we will need it for communication between processes for various matrix operations. The `rank` and `size` hold the process rank and overall number of processes. Integers `N` and `M` are global matrix dimensions, 4 and 4 for the matrix $$A$$. Whereas `n` and `m` are local matrix sizes, which are 2 and 4 (`m = M` in this exercise). When we run our program, each process will have allocate its own memory, and local sizes might differ for each rank. One would often need additional information about other ranks. This info can be stored in arrays `isize`, `istart` and `iend`, each of size `size`. These are duplicated on each process, and contain the number of owned rows, the starting row index, the ending row index (exclusive), correspondingly. Lastly, we need an array `val` for storing local matrix entries.
+Here, `comm` is an MPI communicator, we will need it for communication between processes for various matrix operations. The `rank` and `size` hold the process rank and overall number of processes. Integers `N` and `M` are global matrix dimensions, 4 and 4 for the matrix $$A$$. Whereas `n` and `m` are local matrix sizes, which are 2 and 4 (`m = M` in this exercise). When we run our program, each process will have to allocate its own memory, and local sizes might differ for each rank. One would often need additional information about other ranks. This info can be stored in arrays `isize`, `istart` and `iend`, each of size `size`. These are duplicated on each process, and contain the number of owned rows, the starting row index, the ending row index (exclusive), correspondingly. Lastly, we need an array `val` for storing local matrix entries.
 
 ## MatrixCreate
 
-Let's first implement the `void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A)` function. The full code of the function will be given later. The first thing we need to do is to understand our place in the world. We use `MPI_Comm_rank` and `MPI_Comm_size` functions to get the rank and overall size of the communicator. 
+Let's first implement the `MatrixCreate` function. The full code of the function will be given later. The first thing we need to do is to understand our place in the world. We use `MPI_Comm_rank` and `MPI_Comm_size` functions to get the rank and overall size of the communicator. 
 
 ```c
 int rank, size;
@@ -145,7 +145,7 @@ Now we have to decide how we split our matrix. The number of local and global co
 (*A)->M = M;
 ```
 
-The row split is fully deterministic and does not require any communication. That means we can generate this information on every process, so that everyone knows who owns how many rows, and the ownership ranges.
+The row split is fully deterministic and does not require any communication. That means we can generate this information on every process, so that everyone knows who owns how many rows, and the ownership ranges. Here, the `isize` array stores the number of rows each rank owns. The arrays `istart` and `iend` store the start and end indices of the local submatrix using the global ordering. For instance, for two ranks and a $$4\times4$$ example we provided: `isize = [2, 2]`, `istart = [0, 2]` and `iend = [2, 4]`.
 
 ```c
 (*A)->isize[0] = N / size + (0 < N % size);
@@ -199,7 +199,7 @@ void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A){
 
 ## MatrixDestroy
 
-The memory allocated dynamically using `malloc` or `calloc` cannot be reclaimed by the operating system, unless we `free` it or the program terminates. If we provide a function for creating matrices, we must provide a function to destroying them too. This will help the user to get better control of his memory consumption. The following code deallocates the contents of a matrix in reverse order: first it frees arrays `val`, `isize`, etc., and only after that the structure itself. If we `free(*A)` first, `(*A)->val` and friends now point to nowhere and we cannot deallocate them. Since the arrays are still unreclaimed, this is a memory leak.
+The memory allocated dynamically using `malloc` or `calloc` cannot be reclaimed by the operating system, unless we `free` it or the program terminates. If we provide a function for creating matrices, we must provide a function for destroying them too. This will help the user to get better control of one's memory consumption. The following code deallocates the contents of a matrix in reverse order: first it frees arrays `val`, `isize`, etc., and only after that the structure itself. If we `free(*A)` first, `(*A)->val` and friends now point to nowhere and we cannot deallocate them. Since the arrays are still unreclaimed, this would be a memory leak.
 
 ```c
 void MatrixDestroy(Matrix* A){
@@ -225,7 +225,7 @@ void MatrixSetValue(Matrix A, int i, int j, double val){
 
 ## MatrixView
 
-At last, we implement a function to print our matrix. Input and output in an MPI program is quite tricky. The reason is that all MPI processes run the same code simultaneously, and if we want to naively print array contents, the output would be a mess. A slightly more successful approach is to force processes wait for each other. This can be accomplished with `MPI_Barrier` function.
+At last, we implement a function to print our matrix. Input and output in an MPI program is quite tricky. The reason is that all MPI processes run the same code simultaneously, and if we want to naively print array contents, the output would be a mess. A slightly more successful approach is to force processes to wait for each other. This can be accomplished with `MPI_Barrier` function.
 
 
 ```c
@@ -246,9 +246,9 @@ void MatrixView(Matrix A){
 }
 ```
 
-The code above runs a `k`-loop from 0 to `size` on each process. Inside, we check if the `rank` is equal to current `k`. If yes, we print the local submatrix. If not, we do nothing. The `MPI_Barrier` at the end makes sure that no other process continues until we done printing. As a result, on iteration `k = 0`, rank 0 process prints its own submatrix, all others wait. On iteration `k = 1`, rank 1 prints, all others wait. And so on, until we reach the last process and the end of the matrix.
+The code above runs a `k` loop from 0 to `size` on each process. Inside, we check if the `rank` is equal to current `k`. If yes, we print the local submatrix. If not, we do nothing. The `MPI_Barrier` at the end makes sure that no other process continues until we are done printing. As a result, on iteration `k = 0`, rank 0 process prints its own submatrix, all others wait. On iteration `k = 1`, rank 1 prints, all others wait. And so on, until we reach the last process and the end of the matrix.
 
-We must note that the output will not always be in order. In general, it is impossible to synchronize the output of an MPI program, since the output is handled by the operating system. However, it might be possible to write into a file in a correct order, or to send all the data to a single process for printing. For large scale problems, printing millions of entries or sending the entire matrix over the network would be unwise in any case.
+We must note that the output will be much more structured, but not always be in order. In general, it is impossible to synchronize the output of an MPI program, since the output is handled by the operating system. It might be possible to write into a file in a correct order, or to send all the data to a single process for printing. However, for large scale problems, printing millions of entries or sending the entire matrix over the network would be unwise in any case.
 
 ## Test
 
