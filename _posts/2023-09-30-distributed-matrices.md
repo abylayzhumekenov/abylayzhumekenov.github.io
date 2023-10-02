@@ -2,7 +2,7 @@
 layout:	post
 title:	"Distributed matrices using MPI"
 date:	2023-09-30 02:05:00 +0300
-categories:	Category
+categories: Computing
 ---
 {% include_relative _includes/head-custom.html %}
 
