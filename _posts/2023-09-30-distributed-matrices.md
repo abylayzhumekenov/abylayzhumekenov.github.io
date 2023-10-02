@@ -114,7 +114,7 @@ typedef struct _Matrix {
 
 Here, `comm` is an MPI communicator, we will need it for communication between processes for various matrix operations. The `rank` and `size` hold the process rank and overall number of processes. Integers `N` and `M` are global matrix dimensions, 4 and 4 for the matrix $$A$$. Whereas `n` and `m` are local matrix sizes, which are 2 and 4 (`m = M` in this exercise). When we run our program, each process will have allocate its own memory, and local sizes might differ for each rank. One would often need additional information about other ranks. This info can be stored in arrays `isize`, `istart` and `iend`, each of size `size`. These are duplicated on each process, and contain the number of owned rows, the starting row index, the ending row index (exclusive), correspondingly. Lastly, we need an array `val` for storing local matrix entries.
 
-### MatrixCreate
+## MatrixCreate
 
 Let's first implement the `void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A)` function. The full code of the function will be given later. The first thing we need to do is to understand our place in the world. We use `MPI_Comm_rank` and `MPI_Comm_size` functions to get the rank and overall size of the communicator. 
 
@@ -197,7 +197,7 @@ void MatrixCreate(MPI_Comm comm, int N, int M, Matrix* A){
 }
 ```
 
-### MatrixDestroy
+## MatrixDestroy
 
 The memory allocated dynamically using `malloc` or `calloc` cannot be reclaimed by the operating system, unless we `free` it or the program terminates. If we provide a function for creating matrices, we must provide a function to destroying them too. This will help the user to get better control of his memory consumption. The following code deallocates the contents of a matrix in reverse order: first it frees arrays `val`, `isize`, etc., and only after that the structure itself. If we `free(*A)` first, `(*A)->val` and friends now point to nowhere and we cannot deallocate them. Since the arrays are still unreclaimed, this is a memory leak.
 
@@ -211,7 +211,7 @@ void MatrixDestroy(Matrix* A){
 }
 ```
 
-### MatrixSetValue
+## MatrixSetValue
 
 Navigating C arrays to set individual matrix entries might be too tiresome for the user. Especially when the matrix is distributed and its indices do not correspond to those of local arrays. For example, if we want to insert a value in the position `(0,0)` in matrix $$A$$, only the owner (rank 0) must do so. Luckily, we can access the ownership information we saved in `istart` and `iend` arrays. If the index `i` is in the ownership range, we can insert the value on `i - A->istart[A->rank]`th row of the local matrix. For our matrix $$A$$, the offsets are equal to 0 and 2 correspondingly.
 
@@ -223,7 +223,7 @@ void MatrixSetValue(Matrix A, int i, int j, double val){
 }
 ```
 
-### MatrixView
+## MatrixView
 
 At last, we implement a function to print our matrix. Input and output in an MPI program is quite tricky. The reason is that all MPI processes run the same code simultaneously, and if we want to naively print array contents, the output would be a mess. A slightly more successful approach is to force processes wait for each other. This can be accomplished with `MPI_Barrier` function.
 
@@ -250,7 +250,7 @@ The code above runs a `k`-loop from 0 to `size` on each process. Inside, we chec
 
 We must note that the output will not always be in order. In general, it is impossible to synchronize the output of an MPI program, since the output is handled by the operating system. However, it might be possible to write into a file in a correct order, or to send all the data to a single process for printing. For large scale problems, printing millions of entries or sending the entire matrix over the network would be unwise in any case.
 
-### Test
+## Test
 
 Now, let us test the implemented functions on an example matrix $$A$$ of size $$4\times4$$. Let $$A$$ be an identity matrix:
 
