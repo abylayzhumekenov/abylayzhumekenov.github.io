@@ -92,4 +92,4 @@ The process 2 says hello world!
 
 ## Conclusion
 
-We see that our program just duplicates the code using two processes, with the `rank` variable having different values, 0 and 1. This is essentially how all MPI programs work, they execute the same code with some variables set to defferent values. Depending on the value of `rank` and using `if` statements, for example, we can force processes to work on different parts of a matrix. This is how the parallelization is achieved.
+We see that our program just duplicates the code using three processes, with the `rank` variable having different values, 0, 1 and 2. This is essentially how all MPI programs work, they execute the same code with some variables set to defferent values. Depending on the value of `rank` and using `if` statements, for example, we can force processes to work on different parts of a matrix. This is how the parallelization is achieved.
