@@ -88,7 +88,7 @@ MPI_Comm_rank(comm, &rank);
 MPI_Comm_size(comm, &size);
 ```
 
-Now we have to decide how we split our vector. Given global row dimensions `N`, we have to calculate how many will be local `n` rows. Since we are working with integers, each process should get at least `N / size` rows. E.g, for `N = 8` and `size = 3`, each rank gets `8 / 3 = 2` rows at minimum. Further, we must somehow distribute the remaining rows, of which, there are `N % size` or `8 % 3 = 2`. We can make the following rule: if the remainder is `r`, the first `r` ranks will get one additional row. This can nicely be written as `rank < N % size`, which is 1 (true) for the first `r` ranks and 0 for the rest. To get the intuition, you can play this game on a paper using other numbers.
+Now we have to decide how we split our vector. Given global row dimensions `N`, we have to calculate how many will be local `n` rows. Since we are working with integers, each process should get at least `N / size` rows. E.g, for `N = 8` and `size = 3`, each rank gets `8 / 3 = 2` rows at minimum. Further, we must somehow distribute the remaining rows, of which, there are `N % size` or `8 % 3 = 2`. We can make the following rule: if the remainder is `r`, the first `r` ranks will get one additional row. This can nicely be written as `rank < N % size`, which is 1 (true) for the first `r` ranks and 0 (false) for the rest. To get the intuition, you can play this game on a paper using other numbers.
 
 ```c
 int n = N / size + (rank < N % size);
