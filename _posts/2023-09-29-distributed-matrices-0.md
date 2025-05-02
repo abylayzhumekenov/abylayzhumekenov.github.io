@@ -54,7 +54,7 @@ It is better to organize the code in modules. In C, we achieve this by creating 
 Now let us write a simple program which prints the process rank, a unique number every MPI process gets at the initialization. Go into `main.c` file and add the following lines:
 
 ```c
-#include <openmpi/mpi.h>
+#include <mpi.h>
 #include <stdio.h>
 
 int main(int argc, char **argv){

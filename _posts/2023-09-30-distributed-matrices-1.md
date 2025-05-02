@@ -14,7 +14,7 @@ Previously we gave a basic introduction to compiling and running MPI programs, a
 
 ## Distributed vectors
 
-For this exercise, we will pretend that MPI processes reside on different machines (although they do not), and each will store only one part of the vector. Vectors can be split into contiguous parts. This ensures the data locality and, consequently, higher cache hit rate. Let us consider a vector $$x$$ of size 8 and let the number of processes to be 3. We must have a consistent way to determine how many elements will be in each of 3 partitions.
+For this exercise, we will pretend that MPI processes reside on different machines (although they do not), and each will store only one part of the vector. Vectors can be split into contiguous parts. This ensures the data locality and, in certain situations, higher cache hit rate. Let us consider a vector $$x$$ of size 8 and let the number of processes to be 3. We must have a consistent way to determine how many elements will be in each of 3 partitions.
 We can prioritize lower ranks to have more elements. For example,
 
 $$
@@ -40,7 +40,7 @@ The rank 0 gets 3 local elements $$x_0, x_1, x_2$$, the rank 1 gets 3 elements $
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include <openmpi/mpi.h>
+#include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -229,7 +229,7 @@ We test our code in `main.c` as follows
 
 ```c
 #include <stdio.h>
-#include <openmpi/mpi.h>
+#include <mpi.h>
 #include "vector.h"
 
 int main(int argc, char **argv){

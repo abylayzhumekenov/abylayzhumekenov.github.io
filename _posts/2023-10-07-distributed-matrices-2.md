@@ -33,7 +33,7 @@ A = \left[
 \right]
 $$
 
-As we see, the row-orientation better fits the row-partitioning, as we have more contiguous data layout. Note that despite owning only several rows, ranks own all the columns. That is, there is no concept of local rows here. However, that is not always the case. For PETSc matrices, one can also indicate the local column sizes. Altought this does not really change the memory layout, it is usually done to speed up matrix-vector products by multiplying block diagonals while communicating.
+As we see, the row-orientation better fits the row-partitioning, as we have more contiguous data layout. Note that despite owning only several rows, ranks own all the columns. That is, there is no concept of local columns here. However, that is not always the case. For PETSc matrices, one can also indicate the local column sizes. Altought this does not really change the memory layout, it is usually done to speed up matrix-vector products by multiplying block diagonals while communicating.
 
 $$
 A = \left[
@@ -58,7 +58,7 @@ Let us go into the file `matrix.h` and add
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <openmpi/mpi.h>
+#include <mpi.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -206,7 +206,7 @@ Replace the old test code from `main.c` to:
 
 ```c
 #include <stdio.h>
-#include <openmpi/mpi.h>
+#include <mpi.h>
 #include "vector.h"
 #include "matrix.h"
 
@@ -230,7 +230,7 @@ int main(int argc, char **argv){
 }
 ```
 
-Compile with `mpicc matrix.c main.c -o main` and run as `mpiexec -n 3 ./main`. The output should be something in the lines of (might be wrong order)
+Compile with `mpicc matrix.c main.c -o main` and run as `mpiexec -n 3 ./main`. The output should be something along the lines of (might be wrong order):
 
 ```
 Matrix of size (8, 8) on 3 processes:
