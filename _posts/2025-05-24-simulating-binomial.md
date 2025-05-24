@@ -9,7 +9,7 @@ categories: Computing
 
 ## Introduction
 
-R's default `rbinom` function to generate random variables from a binomial density is slow (even slower than `rnorm`). We implement a custom sampler given fixed parameters `size=64` and `prob=0.5`. We use `Rcpp` to generate 64 random bits and sum the bit fields using (Hamming weight)[https://en.wikipedia.org/wiki/Hamming_weight]. 
+R's default `rbinom` function to generate random variables from a binomial density is slow (even slower than `rnorm`). We implement a custom sampler given fixed parameters `size=64` and `prob=0.5`. We use `Rcpp` to generate 64 random bits and sum the bit fields using [Hamming weight][https://en.wikipedia.org/wiki/Hamming_weight]. 
 
 ```R
 library(Rcpp)
