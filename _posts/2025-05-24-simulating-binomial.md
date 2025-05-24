@@ -57,7 +57,7 @@ for(i in seq_along(samples)){
 }
 ```
 
-Now plot the speedup against the sample size. Additionally, plot the histogram to check if they match.
+Now plot the speedup against the sample size. Additionally, plot the histogram to check if they match (they do: red + blue = purple).
 
 ```R
 speedup = res1/res2
