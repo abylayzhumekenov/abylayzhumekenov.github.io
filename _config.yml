@@ -37,8 +37,7 @@ kramdown:
    math_engine: mathjax
 
 include:
-  - _posts/
-  - _includes/pdf/
+  - assets/
 
 # Exclude from processing.
 # The following items will not be processed, by default.

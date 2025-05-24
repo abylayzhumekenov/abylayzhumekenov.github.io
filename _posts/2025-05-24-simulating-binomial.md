@@ -75,6 +75,6 @@ hist(x2, 50, prob=TRUE, col=rgb(0,1,0,0.5), border=NA, add=TRUE)
 par(mfrow=c(1,1))
 ```
 
-[View the rbinom64 PDF results](../_includes/pdf/rbinom64.pdf)
+![rbinom64.png](/assets/images/rbinom64.png)
 
 We see that our implementation is faster for almost all sample sizes, reaching a speedup of about x15. There is a potential to generalize the results for `size>64`, implementation would involve summing bits from multiple 64 bit fields.
