@@ -77,4 +77,6 @@ par(mfrow=c(1,1))
 
 ![rbinom64.png](/assets/images/rbinom64.png)
 
-We see that our implementation is faster for almost all sample sizes, reaching a speedup of about x15. There is a potential to generalize the results for `size>64`, implementation would involve summing bits from multiple 64 bit fields.
+We see that our implementation is faster for almost all sample sizes, reaching a speedup of about x15. For the largest sample size `n=2^25=67108864`, our code ran 1.003826 seconds, while the default method finished in 10.32356 seconds. The Python equivalent `np.random.binomial` took 7.236028 seconds.
+
+There is a potential to generalize the results for `size>64`, implementation would involve summing bits from multiple 64 bit fields.
